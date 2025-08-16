@@ -1,0 +1,92 @@
+buildscript {
+
+    ext {
+        // 使用官方发布的版本，例如 8.4
+        gradleVersion = '8.11.1'
+        compileSdk=36
+    }
+    ext.safeExtGet = {prop, fallback ->
+        rootProject.ext.has(prop) ? rootProject.ext.get(prop) : fallback
+    }
+    repositories {
+        google()
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:${safeExtGet("kotlinVersion", "2.1.20")}")
+        classpath("com.android.tools.build:gradle:${gradleVersion}")
+    }
+}
+
+def isNewArchitectureEnabled() {
+    return project.hasProperty("newArchEnabled") && project.newArchEnabled == "true"
+}
+
+apply plugin: "com.android.library"
+apply plugin: "kotlin-android"
+//apply plugin:"com.google.devtools.ksp:1.9.22-1.0.17"
+
+if (isNewArchitectureEnabled()) {
+    apply plugin: "com.facebook.react"
+}
+
+android {
+    buildToolsVersion safeExtGet("buildToolsVersion", "36.0.0")
+    compileSdkVersion safeExtGet("compileSdkVersion", 36)
+    compileSdk 36
+    buildFeatures {
+            buildConfig true
+            dataBinding true
+        }
+
+    if (project.android.hasProperty("namespace")) {
+        namespace "com.faceAI.demo"
+
+         sourceSets {
+            main {
+                manifest.srcFile "src/main/AndroidManifestNew.xml"
+            }
+        }
+    }
+    defaultConfig {
+        minSdk 24
+        targetSdk 35 //target SDK 还是28 的请参考question.md 文档说明
+
+        ndk {
+            abiFilters 'armeabi-v7a','arm64-v8a'   //chrome OS 暂时不支持了
+        }
+    }
+    lintOptions {
+        abortOnError false
+    }
+    sourceSets {
+        main {
+            if (isNewArchitectureEnabled()) {
+                java.srcDirs += ["src/newarch"]
+            } else {
+                java.srcDirs += ["src/oldarch"]
+            }
+        }
+    }
+}
+
+repositories {
+    maven {
+        // All of React Native (JS, Obj-C sources, Android binaries) is installed from npm
+        url("$rootDir/../node_modules/react-native/android")
+      
+    }
+    mavenCentral()
+    google()
+
+}
+
+def camera_version = "1.4.2"
+
+
+dependencies {
+    //noinspection GradleDynamicVersion
+    implementation "com.facebook.react:react-native:+" // From node_modules
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.1.20"
+
+}
